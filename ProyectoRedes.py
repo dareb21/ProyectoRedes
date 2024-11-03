@@ -108,9 +108,6 @@ def MonitoreofinHilo():
     Monitoreofin_hilo.start()
 
 def VelocidadRecursive():
-    print("---------------------")
-    print("entro")
-    print(chk_state.get())
     if chk_state.get() == False:
         st = speedtest.Speedtest()
         st.get_best_server()
