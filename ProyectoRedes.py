@@ -1,14 +1,18 @@
+#lIBRERIAS NECESARIAS PARA ESTO pip install requests paramiko psutil speedtest-cli matplotlib PyQt5 PyQtWebEngine
+
 import tkinter as tk
-from sys import executable
-from tkinter import messagebox, BooleanVar, Checkbutton
+from tkinter import messagebox, BooleanVar, Checkbutton, Frame
 import requests
 import time
 import paramiko
 import psutil
 import speedtest
 import matplotlib.pyplot as plt
-import webbrowser
 import threading
+import sys
+from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget, QMainWindow
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QUrl
 
 
 #Inicio de ROOT
@@ -33,6 +37,26 @@ chk=Checkbutton(root,text="",variable=chk_state)
 
 
 #Zona de funciones
+def Browser():
+    frame = Frame(root, width=1024, height=800)
+    frame.pack(fill=tk.BOTH, expand=True)
+    app = QApplication(sys.argv)
+    web= QWebEngineView()
+    web.setUrl(QUrl("https://google.com"))
+    container = QWidget()
+    container.setLayout(QVBoxLayout())
+    container.layout().addWidget(web)
+    container.setGeometry(0,0,1024,800)
+    container.show()
+    def StartBrowser():
+        sys.exit(app.exec_())
+
+    def StartBrowserHilo():
+        threading.Thread(target=StartBrowser()).start()
+
+    StartBrowserHilo()
+
+
 def PrenderVpn():
     try:
         client = paramiko.SSHClient()
@@ -148,25 +172,23 @@ def MostrarVelocidad():
 
 
 def Navegacion():
-    nav = input(" Ingrese el sitio donde desea ingresar: ")
     if chk_state.get() == True:
         try:
-            curl = f"curl https://www.{nav}.com"
+            #curl = f"curl https://www.{nav}.com"
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect(Vps_ip, username=Vps_user, password=Vps_pass)
-            stdin, stdout, stderr = client.exec_command(curl)
+            #stdin, stdout, stderr = client.exec_command(curl)
             time.sleep(1)
-            output = stdout.read().decode('utf-8')
-            print(output)
+            #output = stdout.read().decode('utf-8')
+            #print(output)
         except paramiko.SSHException as e:
             print(e)
         finally:
             client.close()
     else:
-        nav = (f"https:"
-               f"//www.{nav}.com")
-        webbrowser.open(nav)
+        Browser()
+
 
 #Zona de labels
 labelTitulo=tk.Label(root, text="Monitoreo de Red y Navegacion Privada", font=("Arial", 20, "bold"))
