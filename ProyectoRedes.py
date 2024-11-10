@@ -16,6 +16,9 @@ from PyQt5.QtCore import QUrl
 
 
 #Inicio de ROOT
+app = None
+web = None
+container = None
 root=tk.Tk()
 root.geometry('800x500')
 root.title("Monitoreo de Red y Navegacion Privada")
@@ -38,23 +41,30 @@ chk=Checkbutton(root,text="",variable=chk_state)
 
 #Zona de funciones
 def Browser():
-    frame = Frame(root, width=1024, height=800)
-    frame.pack(fill=tk.BOTH, expand=True)
-    app = QApplication(sys.argv)
-    web= QWebEngineView()
-    web.setUrl(QUrl("https://google.com"))
-    container = QWidget()
-    container.setLayout(QVBoxLayout())
-    container.layout().addWidget(web)
-    container.setGeometry(0,0,1024,800)
-    container.show()
-    def StartBrowser():
-        sys.exit(app.exec_())
+    global app, web, container
 
-    def StartBrowserHilo():
-        threading.Thread(target=StartBrowser()).start()
+    if app is None:
+        app = QApplication(sys.argv)  # Crea la aplicación solo una vez
+        web = QWebEngineView()  # Crea la vista web
+        web.setUrl(QUrl("https://google.com"))  # Establece la URL
 
-    StartBrowserHilo()
+        # Crear el contenedor y asignar la vista web
+        container = QWidget()
+        container.setLayout(QVBoxLayout())
+        container.layout().addWidget(web)
+        container.setGeometry(0, 0, 1024, 800)
+        container.show()
+
+        # Ejecutar el ciclo de eventos de PyQt en un hilo separado
+        def run_app():
+            app.exec_()
+
+        # Crear un hilo para la aplicación PyQt
+        threading.Thread(target=run_app, daemon=True).start()
+
+    else:
+        # Si la aplicación ya está corriendo, solo mostrarla
+        container.show()
 
 
 def PrenderVpn():
