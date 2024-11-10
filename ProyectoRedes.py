@@ -19,6 +19,7 @@ from PyQt5.QtCore import QUrl
 app = None
 web = None
 container = None
+vpn_connected = False  # Variable para indicar el estado de la VPN
 root=tk.Tk()
 root.geometry('800x500')
 root.title("Monitoreo de Red y Navegacion Privada")
@@ -44,11 +45,12 @@ def Browser():
     global app, web, container
 
     if app is None:
-        app = QApplication(sys.argv)  # Crea la aplicación solo una vez
-        web = QWebEngineView()  # Crea la vista web
-        web.setUrl(QUrl("https://google.com"))  # Establece la URL
+        # Crea QApplication solo una vez
+        app = QApplication(sys.argv)
+        web = QWebEngineView()
+        web.setUrl(QUrl("https://google.com"))
 
-        # Crear el contenedor y asignar la vista web
+        # Crear el contenedor de la ventana del navegador
         container = QWidget()
         container.setLayout(QVBoxLayout())
         container.layout().addWidget(web)
@@ -56,37 +58,37 @@ def Browser():
         container.show()
 
         # Ejecutar el ciclo de eventos de PyQt en un hilo separado
-        def run_app():
-            app.exec_()
-
-        # Crear un hilo para la aplicación PyQt
-        threading.Thread(target=run_app, daemon=True).start()
-
+        threading.Thread(target=app.exec_, daemon=True).start()
     else:
-        # Si la aplicación ya está corriendo, solo mostrarla
+        # Si la aplicación ya está creada, solo mostramos la ventana
         container.show()
 
 
 def PrenderVpn():
+    global vpn_connected
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(Vps_ip, username=Vps_user, password=Vps_pass)
         stdin, stdout, stderr = client.exec_command('curl https://api.ipify.org')
-        time.sleep(1)
-        output=stdout.read().decode('utf-8')
-        use_thisip=output
-        My_Ip.set(use_thisip)
+        output = stdout.read().decode('utf-8')
+
+        # Actualiza el estado de la VPN y la IP
+        vpn_connected = True
+        My_Ip.set(output)
         chk_state.set(True)
-        print(My_Ip.get())
+        print("VPN Conectada:", My_Ip.get())
+
     except Exception as e:
-            print(e)
+        print("Error al conectar VPN:", e)
+
     finally:
         client.close()
-    return chk_state, use_thisip
+    return chk_state, My_Ip.get()
+
+
 def PrenderVpnHilo():
-    PrenderVPN_hilo=threading.Thread(target=PrenderVpn)
-    PrenderVPN_hilo.start()
+    threading.Thread(target=PrenderVpn, daemon=True).start()
 
 def ApagarVpn():
     try:
@@ -211,9 +213,9 @@ label_ST=tk.Label()
 label_ST.place(x=150, y=300)
 
 #Zona de botones
-Btn_PrenderVPN=tk.Button(root, text="Prender VPN",bg="green",fg="white",font=("Arial", 12), command=PrenderVpnHilo)
+Btn_PrenderVPN = tk.Button(root, text="Prender VPN", bg="green", fg="white", font=("Arial", 12), command=PrenderVpnHilo)
 Btn_PrenderVPN.place(x=250, y=50)
-Btn_ApagarVPN=tk.Button(root, text="Apagar VPN",bg="red",fg="white",font=("Arial", 12),command=ApagarVpnHilo)
+Btn_ApagarVPN = tk.Button(root, text="Apagar VPN", bg="red", fg="white", font=("Arial", 12), command=ApagarVpnHilo)
 Btn_ApagarVPN.place(x=390, y=50)
 Btn_Monitoreo=tk.Button(root, text="Realizar Monitoreo en tiempo real",font=("Arial", 12,"bold"),command=MonitoreoHilo)
 Btn_Monitoreo.place(x=10, y=100)
@@ -221,9 +223,8 @@ Btn_MonitoreoFin=tk.Button(root, text="Terminar Monitoreo en tiempo real",font=(
 Btn_MonitoreoFin.place(x=150, y=100)
 Btn_Velocidad=tk.Button(root, text="Test de velocdidad de conexion",font=("Arial", 12,"bold"), command=Velocidad)
 Btn_Velocidad.place(x=10, y=150)
-Btn_Navegacion=tk.Button(root, text="Navegacion",font=("Arial", 12,"bold"),command=Navegacion)
+Btn_Navegacion = tk.Button(root, text="Navegación", font=("Arial", 12, "bold"), command=Browser)
 Btn_Navegacion.place(x=10, y=200)
-
 VelocidadRecursiveHilo()
 
 root.mainloop()
