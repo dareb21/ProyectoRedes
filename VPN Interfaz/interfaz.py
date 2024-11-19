@@ -1,5 +1,7 @@
 import tkinter as tk
 from PIL import Image, ImageTk
+import subprocess
+from tkinter import messagebox
 
 greenColor = (76,229,100)
 
@@ -19,6 +21,61 @@ img_boton2 = Image.open("VPN Interfaz/SWITCH_APAGADO.png")  # Reemplaza por imag
 img_boton2 = img_boton2.resize((135, 155))
 img_boton_tk2 = ImageTk.PhotoImage(img_boton2)
 
+def connect_vpn():
+    try:
+        # Ruta al ejecutable de OpenVPN GUI
+        openvpn_gui_path = r"C:\Program Files\OpenVPN\bin\openvpn-gui.exe"
+        
+        # Nombre del perfil que ya está importado en OpenVPN GUI
+        profile_name = "RedesUsap"  # Cambia esto por el nombre exacto de tu perfil
+
+        # Ejecutar OpenVPN GUI con el perfil
+        process = subprocess.run(
+            [openvpn_gui_path, "--connect", profile_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Verificar si hubo algún error
+        if process.returncode != 0:
+            messagebox.showerror("Error de Conexión", f"No se pudo conectar a la VPN. Error: {process.stderr}")
+        else:
+            messagebox.showinfo("Conexión VPN", "La VPN se ha conectado correctamente.")
+            
+    except FileNotFoundError:
+        messagebox.showerror("Error", "No se encontró OpenVPN GUI. Verifica tu instalación.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Ha ocurrido un error: {str(e)}")
+
+
+def disconnect_vpn():
+    try:
+        # Ruta al ejecutable de OpenVPN GUI
+        openvpn_gui_path = r"C:\Program Files\OpenVPN\bin\openvpn-gui.exe"
+        
+        # Nombre del perfil que ya está importado en OpenVPN GUI
+        profile_name = "RedesUsap"  # Cambia esto por el nombre exacto de tu perfil
+
+        # Ejecutar OpenVPN GUI para desconectar el perfil
+        process = subprocess.run(
+            [openvpn_gui_path, "--disconnect", profile_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Verificar si hubo algún error
+        if process.returncode != 0:
+            messagebox.showerror("Error de Desconexión", f"No se pudo desconectar la VPN. Error: {process.stderr}")
+        else:
+            messagebox.showinfo("Desconexión VPN", "La VPN se ha desconectado correctamente.")
+            
+    except FileNotFoundError:
+        messagebox.showerror("Error", "No se encontró OpenVPN GUI. Verifica tu instalación.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Ha ocurrido un error: {str(e)}")
+
 boton1_creado = None
 # Función para el botón de encender
 #ACA SE DEBE AGREGAR TODO LO QUE SEA CORRESPONDIENTE A ENCENDER LA VPN
@@ -35,6 +92,8 @@ def boton1():
 
     boton1_creado = boton    
 
+    connect_vpn()
+
     boton.destroy()
     def boton2def(): #ESTE BOTON ES PARA APAGAR EL VPN, ACA SE DEBE DESACTIVAR LOS SERVICIOS DEL VPN
         print("Boton OFF presionado")#ESTE PRINT ESTA PARA VERIFICAR, ESTO SE DEBE QUITAR Y PONER LOS SERVICIOS CORRESPONDIENTES
@@ -48,6 +107,7 @@ def boton1():
 
         global boton1_creado
         boton1_creado = boton12
+        disconnect_vpn()
     boton2 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk2, command=boton2def)
     boton2.place(x=1390, y=417)
     
