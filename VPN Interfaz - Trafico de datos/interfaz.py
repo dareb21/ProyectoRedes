@@ -3,23 +3,24 @@ from PIL import Image, ImageTk
 import subprocess
 from tkinter import messagebox
 
-greenColor = (76,229,100)
+greenColor = (76, 229, 100)
 
 # Crear ventana
 root = tk.Tk()
 root.title("GhostVPN")
 root.geometry("1600x900")
 root.configure(background='white')
-root.resizable(False,False)
+root.resizable(False, False)
 
 # Crear canvas
 canvas = tk.Canvas(root, width=1600, height=900, bg='white')
 canvas.pack()
 
-#BOTON OFF
+# BOTON OFF
 img_boton2 = Image.open("./SWITCH_APAGADO.png")  # Reemplaza por imagen
 img_boton2 = img_boton2.resize((135, 155))
 img_boton_tk2 = ImageTk.PhotoImage(img_boton2)
+
 
 def connect_vpn():
     try:
@@ -28,7 +29,7 @@ def connect_vpn():
 
         # Nombre del perfil que ya está importado en OpenVPN GUI
         profile_name = "RedesUsap"  # Cambia esto por el nombre exacto de tu perfil
-        obtener_linea_base()  # Restablecer la línea base al conectar la VPN
+
         # Ejecutar OpenVPN GUI con el perfil
         process = subprocess.run(
             [openvpn_gui_path, "--connect", profile_name],
@@ -42,6 +43,8 @@ def connect_vpn():
             messagebox.showerror("Error de Conexión", f"No se pudo conectar a la VPN. Error: {process.stderr}")
         else:
             messagebox.showinfo("Conexión VPN", "La VPN se ha conectado correctamente.")
+            obtener_linea_base()  # Establecer la línea base al conectar la VPN
+            reset_traffic_counters()  # Resetear contadores de tráfico
 
     except FileNotFoundError:
         messagebox.showerror("Error", "No se encontró OpenVPN GUI. Verifica tu instalación.")
@@ -75,6 +78,8 @@ def disconnect_vpn():
             messagebox.showerror("Error de Desconexión", f"No se pudo desconectar la VPN. Error: {process.stderr}")
         else:
             messagebox.showinfo("Desconexión VPN", "La VPN se ha desconectado correctamente.")
+            obtener_linea_base()  # Establecer la línea base al desconectar la VPN
+            reset_traffic_counters()  # Resetear contadores de tráfico
 
     except FileNotFoundError:
         messagebox.showerror("Error", "No se encontró OpenVPN GUI. Verifica tu instalación.")
@@ -82,39 +87,44 @@ def disconnect_vpn():
         messagebox.showerror("Error", f"Ha ocurrido un error: {str(e)}")
 
 
+def reset_traffic_counters():
+    global base_enviados, base_recibidos
+    base_enviados = 0
+    base_recibidos = 0
+    label_trafico.config(text="Trafico de Datos\nEnviados: 0.00 MB\nRecibidos: 0.00 MB")
+
 
 boton1_creado = None
+
+
 # Función para el botón de encender
-#ACA SE DEBE AGREGAR TODO LO QUE SEA CORRESPONDIENTE A ENCENDER LA VPN
-#LOS DATOS DE TRANSFERENCIA Y ESO
 def boton1():
     global boton1_creado
-    print("Botón ON presionado") #ESTE PRINT ESTA PARA VERIFICAR, ESTO SE DEBE QUITAR Y PONER LOS SERVICIOS CORRESPONDIENTES
-    delete_imgledonH() #borro encendido en H
-    create_imgledoffH() #creo apagado en H
-    delete_imgledoffA() #borro apagado en A
-    create_imgledonA() #creo encendido en A
+    print("Botón ON presionado")
+    delete_imgledonH()
+    create_imgledoffH()
+    delete_imgledoffA()
+    create_imgledonA()
     if boton1_creado:
         boton1_creado.destroy()
 
-    boton1_creado = boton    
-
+    boton1_creado = boton
     connect_vpn()
-
     boton.destroy()
-    def boton2def(): #ESTE BOTON ES PARA APAGAR EL VPN, ACA SE DEBE DESACTIVAR LOS SERVICIOS DEL VPN
-        print("Boton OFF presionado")#ESTE PRINT ESTA PARA VERIFICAR, ESTO SE DEBE QUITAR Y PONER LOS SERVICIOS CORRESPONDIENTES
+
+    def boton2def():
+        print("Boton OFF presionado")
         boton2.destroy()
-        delete_imgledoffH() #borro apagado en H
-        create_imgledonH() #creo encendido en H
-        delete_imgledonA() #borro encendido en A
-        create_imgledoffA() #creo apagado en 
+        delete_imgledoffH()
+        create_imgledonH()
+        delete_imgledonA()
+        create_imgledoffA()
         boton12 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk, command=boton1)
         boton12.place(x=1209, y=417)
-
         global boton1_creado
         boton1_creado = boton12
         disconnect_vpn()
+
     boton2 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk2, command=boton2def)
     boton2.place(x=1390, y=417)
 
@@ -127,6 +137,8 @@ label_trafico.place(x=1230, y=170)
 # Variables para guardar la línea base
 base_enviados = 0
 base_recibidos = 0
+linea_base_enviados = 0
+linea_base_recibidos = 0
 
 
 # Función para convertir bytes a MB
@@ -136,7 +148,7 @@ def bytes_a_mb(bytes_val):
 
 # Función para obtener la línea base
 def obtener_linea_base():
-    global base_enviados, base_recibidos
+    global linea_base_enviados, linea_base_recibidos
     try:
         # Ejecutar el comando OpenVPN para obtener estadísticas iniciales
         command = 'netstat -e'
@@ -148,8 +160,8 @@ def obtener_linea_base():
             for line in output.splitlines():
                 if "Bytes" in line:
                     partes = line.split()
-                    base_enviados = int(partes[-2])
-                    base_recibidos = int(partes[-1])
+                    linea_base_enviados = int(partes[-2])
+                    linea_base_recibidos = int(partes[-1])
                     break
     except Exception as e:
         print(f"Error al obtener línea base: {e}")
@@ -157,6 +169,7 @@ def obtener_linea_base():
 
 # Función para actualizar tráfico
 def actualizar_trafico():
+    global base_enviados, base_recibidos
     try:
         # Ejecutar el comando OpenVPN para obtener estadísticas actuales
         command = 'netstat -e'
@@ -170,10 +183,10 @@ def actualizar_trafico():
             for line in output.splitlines():
                 if "Bytes" in line:
                     partes = line.split()
-                    enviados = int(partes[-2]) - base_enviados
-                    recibidos = int(partes[-1]) - base_recibidos
+                    base_enviados = int(partes[-2]) - linea_base_enviados
+                    base_recibidos = int(partes[-1]) - linea_base_recibidos
                     label_trafico.config(
-                        text=f"Trafico de Datos\nEnviados: {bytes_a_mb(enviados)}\nRecibidos: {bytes_a_mb(recibidos)}"
+                        text=f"Trafico de Datos\nEnviados: {bytes_a_mb(base_enviados)}\nRecibidos: {bytes_a_mb(base_recibidos)}"
                     )
                     break
     except Exception as e:
@@ -187,29 +200,28 @@ def actualizar_trafico():
 obtener_linea_base()
 actualizar_trafico()
 
-
-#MAPA CENTRAL
+# MAPA CENTRAL
 img_central = Image.open("./Mapa_mundi_Final.png")
 img_central = img_central.resize((1600, 900), Image.LANCZOS)
 img_central_tk = ImageTk.PhotoImage(img_central)
 canvas.create_image(0, 0, anchor="nw", image=img_central_tk)
 
-#TITULO NOMBRE APP
+# TITULO NOMBRE APP
 img_titulo = Image.open("./TITULO.png")
 img_titulo = img_titulo.resize((330, 130))
 img_titulotk = ImageTk.PhotoImage(img_titulo)
-canvas.create_image(190,70, image=img_titulotk)
+canvas.create_image(190, 70, image=img_titulotk)
 
-#INFO TRAFICO DE RED
-k = "Trafico de Datos" #Variable para el flujo de datos actualizable
-label_trafico = tk.Label(root, bg="black", text=k, font=("Myriad Pro", 20), fg="white") #Color letra en hexadecimal #4CE664
+# INFO TRAFICO DE RED
+k = "Trafico de Datos"
+label_trafico = tk.Label(root, bg="black", text=k, font=("Myriad Pro", 20), fg="white")
 label_trafico.place(x=1230, y=170)
 
 #MARCO INFO DE VPN
 img_info = Image.open("./VPN_INFO.png")
 img_info = img_info.resize((372, 293))
 img_infotk = ImageTk.PhotoImage(img_info)
-canvas.create_image(1370,200, image=img_infotk)
+canvas.create_image(1370, 200, image=img_infotk)
 
 #MARCO SWITCH BOTONES
 img_sw = Image.open("./SWITCH_MARCO.png")
@@ -228,7 +240,7 @@ boton.place(x=1209, y=417)
 img_ledontk = None
 kledon = None
 def create_imgledonH():
-    global img_ledontk, kledon 
+    global img_ledontk, kledon
     img_ledon = Image.open("./VPN_ENCENDIDO_LED.png")
     img_ledon = img_ledon.resize((31, 34))
     img_ledontk = ImageTk.PhotoImage(img_ledon)
@@ -244,7 +256,7 @@ def delete_imgledonH():
 img_ledofftk = None
 kledoff = None
 def create_imgledoffH():
-    global img_ledofftk, kledoff 
+    global img_ledofftk, kledoff
     img_ledoff = Image.open("./VPN_APAGADO_LED.png")
     img_ledoff = img_ledoff.resize((31, 34))
     img_ledofftk = ImageTk.PhotoImage(img_ledoff)
@@ -255,7 +267,6 @@ def delete_imgledoffH():
     if kledoff is not None:
         canvas.delete(kledoff)
         kledoff = None
-
 
 #IMAGEN LED ON ALEMANIA
 img_ledonAtk = None
@@ -289,10 +300,8 @@ def delete_imgledoffA():
         canvas.delete(kledoffA)
         kledoffA = None
 
-
 create_imgledonH()
 create_imgledoffA()
-
 
 # Iniciar la aplicación
 root.mainloop()
