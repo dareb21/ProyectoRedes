@@ -1,230 +1,299 @@
-#lIBRERIAS NECESARIAS PARA ESTO pip install requests paramiko psutil speedtest-cli matplotlib PyQt5 PyQtWebEngine
-
 import tkinter as tk
-from tkinter import messagebox, BooleanVar, Checkbutton, Frame
-import requests
-import time
 import paramiko
-import psutil
-import speedtest
-import matplotlib.pyplot as plt
-import threading
-import sys
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QWidget, QMainWindow
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import QUrl
+from PIL import Image, ImageTk
+import subprocess
+from tkinter import messagebox
 
+greenColor = (76,229,100)
 
-#Inicio de ROOT
-app = None
-web = None
-container = None
-vpn_connected = False  # Variable para indicar el estado de la VPN
-root=tk.Tk()
-root.geometry('800x500')
-root.title("Monitoreo de Red y Navegacion Privada")
+# Crear ventana
+root = tk.Tk()
+root.title("GhostVPN")
+root.geometry("1600x900")
+root.configure(background='white')
+root.resizable(False,False)
 
-#extras NO TOCAR, Si es necesario preguntar a Carlos
-response = requests.get("https://api.ipify.org")
-ip=response.text
-My_Ip=tk.StringVar()
-My_Ip.set(ip)
-Vps_ip="161.97.134.102"
-Vps_user="root"
-Vps_pass="ArquitecturaEnRedes1"
-monitoreo = True
-ConsumoINarray = []
-keywords = ["Download", "Upload","ms"]
-chk_state=BooleanVar()
-chk_state.set(False)
-chk=Checkbutton(root,text="",variable=chk_state)
+# Crear canvas
+canvas = tk.Canvas(root, width=1600, height=900, bg='white')
+canvas.pack()
 
+#BOTON OFF
+img_boton2 = Image.open("./SWITCH_APAGADO.png")  # Reemplaza por imagen
+img_boton2 = img_boton2.resize((135, 155))
+img_boton_tk2 = ImageTk.PhotoImage(img_boton2)
 
-#Zona de funciones
-def Browser():
-    global app, web, container
-
-    if app is None:
-        # Crea QApplication solo una vez
-        app = QApplication(sys.argv)
-        web = QWebEngineView()
-        web.setUrl(QUrl("https://google.com"))
-
-        # Crear el contenedor de la ventana del navegador
-        container = QWidget()
-        container.setLayout(QVBoxLayout())
-        container.layout().addWidget(web)
-        container.setGeometry(0, 0, 1024, 800)
-        container.show()
-
-        # Ejecutar el ciclo de eventos de PyQt en un hilo separado
-        threading.Thread(target=app.exec_, daemon=True).start()
-    else:
-        # Si la aplicación ya está creada, solo mostramos la ventana
-        container.show()
-
-
-def PrenderVpn():
-    global vpn_connected
+def connect_vpn():
     try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(Vps_ip, username=Vps_user, password=Vps_pass)
-        stdin, stdout, stderr = client.exec_command('curl https://api.ipify.org')
-        output = stdout.read().decode('utf-8')
+        # Ruta al ejecutable de OpenVPN GUI
+        openvpn_gui_path = r"C:\Program Files\OpenVPN\bin\openvpn-gui.exe"
 
-        # Actualiza el estado de la VPN y la IP
-        vpn_connected = True
-        My_Ip.set(output)
-        chk_state.set(True)
-        print("VPN Conectada:", My_Ip.get())
+        # Nombre del perfil que ya está importado en OpenVPN GUI
+        profile_name = "RedesUsap"  # Cambia esto por el nombre exacto de tu perfil
+        obtener_linea_base()  # Restablecer la línea base al conectar la VPN
+        # Ejecutar OpenVPN GUI con el perfil
+        process = subprocess.run(
+            [openvpn_gui_path, "--connect", profile_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
 
+        # Verificar si hubo algún error
+        if process.returncode != 0:
+            messagebox.showerror("Error de Conexión", f"No se pudo conectar a la VPN. Error: {process.stderr}")
+        else:
+            messagebox.showinfo("Conexión VPN", "La VPN se ha conectado correctamente.")
+
+    except FileNotFoundError:
+        messagebox.showerror("Error", "No se encontró OpenVPN GUI. Verifica tu instalación.")
     except Exception as e:
-        print("Error al conectar VPN:", e)
-
-    finally:
-        client.close()
-    return chk_state, My_Ip.get()
+        messagebox.showerror("Error", f"Ha ocurrido un error: {str(e)}")
 
 
-def PrenderVpnHilo():
-    threading.Thread(target=PrenderVpn, daemon=True).start()
-
-def ApagarVpn():
+def disconnect_vpn():
     try:
-        response = requests.get("https://api.ipify.org")
-        ip = response.text
-        My_Ip.set(ip)
-        chk_state.set(False)
-        print(ip)
-    except requests.RequestException as e:
-        print(e)
-    return chk_state
-def ApagarVpnHilo():
-    ApagarVPN_hilo=threading.Thread(target=ApagarVpn)
-    ApagarVPN_hilo.start()
+        # Ruta al ejecutable de OpenVPN GUI
+        openvpn_gui_path = r"C:\Program Files\OpenVPN\bin\openvpn-gui.exe"
 
-def Monitoreo():
-    global monitoreo
-    global ConsumoINarray
-    byteIN_inicio = psutil.net_io_counters().bytes_recv
+        # Nombre del perfil que ya está importado en OpenVPN GUI
+        profile_name = "RedesUsap"  # Cambia esto por el nombre exacto de tu perfil
 
-    while monitoreo:
-        time.sleep(1)
-        byteIn_Final = psutil.net_io_counters().bytes_recv
-        consumoIN = (byteIn_Final - byteIN_inicio) / (1024 * 1024)
-        print(f"Consumo Realizado: {consumoIN:.2f} MB")
-        ConsumoINarray.append(consumoIN)
-        byteIN_inicio = byteIn_Final
+        # Comando para ejecutar la desconexion en openvpn gui
+        command = f'"{openvpn_gui_path}" --command disconnect "{profile_name}"'
+        # C:\Program Files\OpenVPN\bin AGREGAR ESTA RUTA A SU PATH
 
-def MonitoreoHilo():
-    Monitoreo_hilo=threading.Thread(target=Monitoreo)
-    Monitoreo_hilo.start()
+        # Ejecutar OpenVPN GUI para desconectar el perfil
+        process = subprocess.run(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
 
-def Monitoreofin():
-    global ConsumoINarray
-    global monitoreo
-    monitoreo = False
-    time.sleep(1)
-    tiempo=range(len(ConsumoINarray))
-    graf=input("Desea graficar los resultados: (s/n)")
-    if graf=="s":
-        fig, axs = plt.subplots()
-        axs.plot(tiempo, ConsumoINarray)
-        axs.set(xlabel='tiempo (segundos)', ylabel='consumo (Mb)', title='Consumo')
-        axs.grid()
-        plt.savefig("consumo_red.png")
-        plt.show()
-    else:
-        ConsumoINarray = []
-    print("Monitoreo Finalizado")
+        # Verificar si hubo algún error
+        if process.returncode != 0:
+            messagebox.showerror("Error de Desconexión", f"No se pudo desconectar la VPN. Error: {process.stderr}")
+        else:
+            messagebox.showinfo("Desconexión VPN", "La VPN se ha desconectado correctamente.")
 
-def MonitoreofinHilo():
-    Monitoreofin_hilo = threading.Thread(target=Monitoreofin)
-    Monitoreofin_hilo.start()
-
-def VelocidadRecursive():
-    if chk_state.get() == False:
-        st = speedtest.Speedtest()
-        st.get_best_server()
-        Vdown = st.download() / (1024 * 1024)
-        Vup = st.upload() / (1024 * 1024)
-        Lag = st.results.ping
-        label_ST.config(text=f"Descarga: {Vdown:.2f} MB/s\nSubida: {Vup:.2f} MB/s\nLatencia: {Lag} ms")
-        root.after(60000, VelocidadRecursive)
-def VelocidadRecursiveHilo():
-    VelocidadRecursive_hilo = threading.Thread(target=VelocidadRecursive)
-    VelocidadRecursive_hilo.start()
-
-###Esta funcion se usara solo si se implemeta el boton Test de velocidad (y en caso de usarla, usar el hilo), sino solo usar la recursiva
-def Velocidad():
-    if chk_state.get() == True:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(Vps_ip, username=Vps_user, password=Vps_pass)
-        stdin, stdout, stderr = client.exec_command('speedtest-cli')
-        time.sleep(1)
-        output = stdout.read().decode('utf-8')
-        print(output)
-        client.close()
-        filtered_output = [line for line in output.split('\n') if any(keyword in line for keyword in keywords)]
-        for line in filtered_output:
-            print(line)
-    else:
-        st = speedtest.Speedtest()
-        st.get_best_server()
-        Vdown = st.download() / (1024 * 1024)
-        Vup = st.upload() / (1024 * 1024)
-        Lag = st.results.ping
-        label_ST.config(text=f"Descarga: {Vdown:.2f} MB/s\nSubida: {Vup:.2f} MB/s\nLatencia: {Lag} ms")
-    return output
-def MostrarVelocidad():
-    Vdown, Vup, Lag = Velocidad()
-    label_ST.config(text=f"Descarga: {Vdown:.2f} MB/s\nSubida: {Vup:.2f} MB/s\nLatencia: {Lag} ms")
+    except FileNotFoundError:
+        messagebox.showerror("Error", "No se encontró OpenVPN GUI. Verifica tu instalación.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Ha ocurrido un error: {str(e)}")
 
 
-def Navegacion():
-    if chk_state.get() == True:
-        try:
-            #curl = f"curl https://www.{nav}.com"
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            client.connect(Vps_ip, username=Vps_user, password=Vps_pass)
-            #stdin, stdout, stderr = client.exec_command(curl)
-            time.sleep(1)
-            #output = stdout.read().decode('utf-8')
-            #print(output)
-        except paramiko.SSHException as e:
-            print(e)
-        finally:
-            client.close()
-    else:
-        Browser()
+
+boton1_creado = None
+# Función para el botón de encender
+#ACA SE DEBE AGREGAR TODO LO QUE SEA CORRESPONDIENTE A ENCENDER LA VPN
+#LOS DATOS DE TRANSFERENCIA Y ESO
+def boton1():
+    global boton1_creado
+    print("Botón ON presionado") #ESTE PRINT ESTA PARA VERIFICAR, ESTO SE DEBE QUITAR Y PONER LOS SERVICIOS CORRESPONDIENTES
+    delete_imgledonH() #borro encendido en H
+    create_imgledoffH() #creo apagado en H
+    delete_imgledoffA() #borro apagado en A
+    create_imgledonA() #creo encendido en A
+    if boton1_creado:
+        boton1_creado.destroy()
+
+    boton1_creado = boton    
+
+    connect_vpn()
+
+    boton.destroy()
+    def boton2def(): #ESTE BOTON ES PARA APAGAR EL VPN, ACA SE DEBE DESACTIVAR LOS SERVICIOS DEL VPN
+        print("Boton OFF presionado")#ESTE PRINT ESTA PARA VERIFICAR, ESTO SE DEBE QUITAR Y PONER LOS SERVICIOS CORRESPONDIENTES
+        boton2.destroy()
+        delete_imgledoffH() #borro apagado en H
+        create_imgledonH() #creo encendido en H
+        delete_imgledonA() #borro encendido en A
+        create_imgledoffA() #creo apagado en 
+        boton12 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk, command=boton1)
+        boton12.place(x=1209, y=417)
+
+        global boton1_creado
+        boton1_creado = boton12
+        disconnect_vpn()
+    boton2 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk2, command=boton2def)
+    boton2.place(x=1390, y=417)
 
 
-#Zona de labels
-labelTitulo=tk.Label(root, text="Monitoreo de Red y Navegacion Privada", font=("Arial", 20, "bold"))
-labelTitulo.place(x=150, y=0)
-labelTextIp=tk.Label(root, text="Ip Actual: ", font=("Arial", 12, "bold"))
-labelTextIp.place(x=10, y=50)
-labelIp=tk.Label(root,textvariable=My_Ip, font=("Arial", 12))
-labelIp.place(x=100, y=50)
-label_ST=tk.Label()
-label_ST.place(x=150, y=300)
+# INFO DE TRÁFICO DE RED
+label_trafico = tk.Label(root, bg="black", text="Trafico de Datos\nEnviados: 0.00 MB\nRecibidos: 0.00 MB",
+                         font=("Myriad Pro", 20), fg="white")
+label_trafico.place(x=1230, y=170)
 
-#Zona de botones
-Btn_PrenderVPN = tk.Button(root, text="Prender VPN", bg="green", fg="white", font=("Arial", 12), command=PrenderVpnHilo)
-Btn_PrenderVPN.place(x=250, y=50)
-Btn_ApagarVPN = tk.Button(root, text="Apagar VPN", bg="red", fg="white", font=("Arial", 12), command=ApagarVpnHilo)
-Btn_ApagarVPN.place(x=390, y=50)
-Btn_Monitoreo=tk.Button(root, text="Realizar Monitoreo en tiempo real",font=("Arial", 12,"bold"),command=MonitoreoHilo)
-Btn_Monitoreo.place(x=10, y=100)
-Btn_MonitoreoFin=tk.Button(root, text="Terminar Monitoreo en tiempo real",font=("Arial", 12,"bold"),command=MonitoreofinHilo)
-Btn_MonitoreoFin.place(x=150, y=100)
-Btn_Velocidad=tk.Button(root, text="Test de velocdidad de conexion",font=("Arial", 12,"bold"), command=Velocidad)
-Btn_Velocidad.place(x=10, y=150)
-Btn_Navegacion = tk.Button(root, text="Navegación", font=("Arial", 12, "bold"), command=Browser)
-Btn_Navegacion.place(x=10, y=200)
-VelocidadRecursiveHilo()
+# Variables para guardar la línea base
+base_enviados = 0
+base_recibidos = 0
 
+
+# Función para convertir bytes a MB
+def bytes_a_mb(bytes_val):
+    return f"{bytes_val / 1024 ** 2:.2f} MB"
+
+
+# Función para obtener la línea base
+def obtener_linea_base():
+    global base_enviados, base_recibidos
+    try:
+        # Ejecutar el comando OpenVPN para obtener estadísticas iniciales
+        command = 'netstat -e'
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+
+        if result.returncode == 0:
+            # Extraer estadísticas relevantes
+            output = result.stdout
+            for line in output.splitlines():
+                if "Bytes" in line:
+                    partes = line.split()
+                    base_enviados = int(partes[-2])
+                    base_recibidos = int(partes[-1])
+                    break
+    except Exception as e:
+        print(f"Error al obtener línea base: {e}")
+
+
+# Función para actualizar tráfico
+def actualizar_trafico():
+    try:
+        # Ejecutar el comando OpenVPN para obtener estadísticas actuales
+        command = 'netstat -e'
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+
+        if result.returncode != 0:
+            label_trafico.config(text="Error al obtener tráfico")
+        else:
+            # Extraer estadísticas relevantes
+            output = result.stdout
+            for line in output.splitlines():
+                if "Bytes" in line:
+                    partes = line.split()
+                    enviados = int(partes[-2]) - base_enviados
+                    recibidos = int(partes[-1]) - base_recibidos
+                    label_trafico.config(
+                        text=f"Trafico de Datos\nEnviados: {bytes_a_mb(enviados)}\nRecibidos: {bytes_a_mb(recibidos)}"
+                    )
+                    break
+    except Exception as e:
+        label_trafico.config(text=f"Error al leer el tráfico: {e}")
+
+    # Actualizar tráfico cada 5 segundos
+    root.after(5000, actualizar_trafico)
+
+
+# Establecer línea base y actualizar tráfico
+obtener_linea_base()
+actualizar_trafico()
+
+
+#MAPA CENTRAL
+img_central = Image.open("./Mapa_mundi_Final.png")
+img_central = img_central.resize((1600, 900), Image.LANCZOS)
+img_central_tk = ImageTk.PhotoImage(img_central)
+canvas.create_image(0, 0, anchor="nw", image=img_central_tk)
+
+#TITULO NOMBRE APP
+img_titulo = Image.open("./TITULO.png")
+img_titulo = img_titulo.resize((330, 130))
+img_titulotk = ImageTk.PhotoImage(img_titulo)
+canvas.create_image(190,70, image=img_titulotk)
+
+#INFO TRAFICO DE RED
+k = "Trafico de Datos" #Variable para el flujo de datos actualizable
+label_trafico = tk.Label(root, bg="black", text=k, font=("Myriad Pro", 20), fg="white") #Color letra en hexadecimal #4CE664
+label_trafico.place(x=1230, y=170)
+
+#MARCO INFO DE VPN
+img_info = Image.open("./VPN_INFO.png")
+img_info = img_info.resize((372, 293))
+img_infotk = ImageTk.PhotoImage(img_info)
+canvas.create_image(1370,200, image=img_infotk)
+
+#MARCO SWITCH BOTONES
+img_sw = Image.open("./SWITCH_MARCO.png")
+img_sw = img_sw.resize((400, 300))
+img_sw_tk = ImageTk.PhotoImage(img_sw)
+ksw = canvas.create_image(1370, 500, image=img_sw_tk)
+
+#BOTON ON
+img_boton = Image.open("./SWITCH_ENCENDIDO.png")
+img_boton = img_boton.resize((135, 155))
+img_boton_tk = ImageTk.PhotoImage(img_boton)
+boton = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk, command=boton1)
+boton.place(x=1209, y=417)
+
+#IMAGEN LED ON HONDURAS
+img_ledontk = None
+kledon = None
+def create_imgledonH():
+    global img_ledontk, kledon 
+    img_ledon = Image.open("./VPN_ENCENDIDO_LED.png")
+    img_ledon = img_ledon.resize((31, 34))
+    img_ledontk = ImageTk.PhotoImage(img_ledon)
+    kledon = canvas.create_image(260, 530, image=img_ledontk)
+
+def delete_imgledonH():
+    global kledon
+    if kledon is not None:
+        canvas.delete(kledon)
+        kledon = None
+
+#IMAGEN LED OFF HONDURAS
+img_ledofftk = None
+kledoff = None
+def create_imgledoffH():
+    global img_ledofftk, kledoff 
+    img_ledoff = Image.open("./VPN_APAGADO_LED.png")
+    img_ledoff = img_ledoff.resize((31, 34))
+    img_ledofftk = ImageTk.PhotoImage(img_ledoff)
+    kledoff = canvas.create_image(260, 530, image=img_ledofftk)
+
+def delete_imgledoffH():
+    global kledoff
+    if kledoff is not None:
+        canvas.delete(kledoff)
+        kledoff = None
+
+
+#IMAGEN LED ON ALEMANIA
+img_ledonAtk = None
+kledonA = None
+def create_imgledonA():
+    global img_ledonAtk, kledonA
+    img_ledonA = Image.open("./VPN_ENCENDIDO_LED.png")
+    img_ledonA = img_ledonA.resize((31, 34))
+    img_ledonAtk = ImageTk.PhotoImage(img_ledonA)
+    kledonA = canvas.create_image(590, 360, image=img_ledonAtk)
+
+def delete_imgledonA():
+    global kledonA
+    if kledonA is not None:
+        canvas.delete(kledonA)
+        kledonA = None
+
+#IMAGEN LED OFF ALEMANIA
+img_ledoffAtk = None
+kledoffA = None
+def create_imgledoffA():
+    global img_ledoffAtk, kledoffA
+    img_ledoffA = Image.open("./VPN_APAGADO_LED.png")
+    img_ledoffA = img_ledoffA.resize((31, 34))
+    img_ledoffAtk = ImageTk.PhotoImage(img_ledoffA)
+    kledoffA = canvas.create_image(590, 360, image=img_ledoffAtk)
+
+def delete_imgledoffA():
+    global kledoffA
+    if kledoffA is not None:
+        canvas.delete(kledoffA)
+        kledoffA = None
+
+
+create_imgledonH()
+create_imgledoffA()
+
+
+# Iniciar la aplicación
 root.mainloop()
