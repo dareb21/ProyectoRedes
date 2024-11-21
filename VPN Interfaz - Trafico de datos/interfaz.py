@@ -5,20 +5,48 @@ from tkinter import messagebox
 
 greenColor = (76, 229, 100)
 
-# Crear ventana
+# # Crear ventana
+# root = tk.Tk()
+# root.title("GhostVPN")
+# root.geometry("1300x600")
+# root.configure(background='white')
+# root.resizable(False, False)
+
+# # Crear canvas
+# canvas = tk.Canvas(root, width=1300, height=600, bg='white')
+# canvas.pack()
+def centrar_ventana(ventana, ancho, alto):
+    # Obtener las dimensiones de la pantalla
+    ancho_pantalla = ventana.winfo_screenwidth()
+    alto_pantalla = ventana.winfo_screenheight()
+
+    # Calcular la posición x, y para centrar
+    x = (ancho_pantalla // 2) - (ancho // 2)
+    y = (alto_pantalla // 2) - (alto // 2)
+
+    # Aplicar la geometría centrada
+    ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
+
+# Crear la ventana principal
 root = tk.Tk()
 root.title("GhostVPN")
-root.geometry("1600x900")
 root.configure(background='white')
 root.resizable(False, False)
 
+# Dimensiones de la ventana
+ancho_ventana = 1300
+alto_ventana = 600
+
+# Centrar la ventana
+centrar_ventana(root, ancho_ventana, alto_ventana)
+
 # Crear canvas
-canvas = tk.Canvas(root, width=1600, height=900, bg='white')
+canvas = tk.Canvas(root, width=ancho_ventana, height=alto_ventana, bg='white')
 canvas.pack()
 
 # BOTON OFF
-img_boton2 = Image.open("./SWITCH_APAGADO.png")  # Reemplaza por imagen
-img_boton2 = img_boton2.resize((135, 155))
+img_boton2 = Image.open("VPN Interfaz - Trafico de datos/SWITCH_APAGADO.png")  # Reemplaza por imagen
+img_boton2 = img_boton2.resize((125,140))
 img_boton_tk2 = ImageTk.PhotoImage(img_boton2)
 
 
@@ -120,19 +148,19 @@ def boton1():
         delete_imgledonA()
         create_imgledoffA()
         boton12 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk, command=boton1)
-        boton12.place(x=1209, y=417)
+        boton12.place(x=973, y=405)
         global boton1_creado
         boton1_creado = boton12
         disconnect_vpn()
 
     boton2 = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk2, command=boton2def)
-    boton2.place(x=1390, y=417)
+    boton2.place(x=1136, y=405)
 
 
 # INFO DE TRÁFICO DE RED
 label_trafico = tk.Label(root, bg="black", text="Trafico de Datos\nEnviados: 0.00 MB\nRecibidos: 0.00 MB",
                          font=("Myriad Pro", 20), fg="white")
-label_trafico.place(x=1230, y=170)
+label_trafico.place(x=990, y=170)
 
 # Variables para guardar la línea base
 base_enviados = 0
@@ -201,50 +229,50 @@ obtener_linea_base()
 actualizar_trafico()
 
 # MAPA CENTRAL
-img_central = Image.open("./Mapa_mundi_Final.png")
-img_central = img_central.resize((1600, 900), Image.LANCZOS)
+img_central = Image.open("VPN Interfaz - Trafico de datos/Mapa_mundi_Final.png")
+img_central = img_central.resize((1300, 600), Image.LANCZOS)
 img_central_tk = ImageTk.PhotoImage(img_central)
 canvas.create_image(0, 0, anchor="nw", image=img_central_tk)
 
 # TITULO NOMBRE APP
-img_titulo = Image.open("./TITULO.png")
-img_titulo = img_titulo.resize((330, 130))
+img_titulo = Image.open("VPN Interfaz - Trafico de datos/TITULO.png")
+img_titulo = img_titulo.resize((230, 100))
 img_titulotk = ImageTk.PhotoImage(img_titulo)
-canvas.create_image(190, 70, image=img_titulotk)
+canvas.create_image(140, 70, image=img_titulotk)
 
 # INFO TRAFICO DE RED
-k = "Trafico de Datos"
-label_trafico = tk.Label(root, bg="black", text=k, font=("Myriad Pro", 20), fg="white")
-label_trafico.place(x=1230, y=170)
+# k = "Trafico de Datos"
+# label_trafico = tk.Label(root, bg="black", text=k, font=("Myriad Pro", 20), fg="white")
+# label_trafico.place(x=960, y=170)
 
 #MARCO INFO DE VPN
-img_info = Image.open("./VPN_INFO.png")
-img_info = img_info.resize((372, 293))
+img_info = Image.open("VPN Interfaz - Trafico de datos/VPN_INFO.png")
+img_info = img_info.resize((340, 293))
 img_infotk = ImageTk.PhotoImage(img_info)
-canvas.create_image(1370, 200, image=img_infotk)
+canvas.create_image(1120, 200, image=img_infotk)
 
 #MARCO SWITCH BOTONES
-img_sw = Image.open("./SWITCH_MARCO.png")
-img_sw = img_sw.resize((400, 300))
+img_sw = Image.open("VPN Interfaz - Trafico de datos/SWITCH_MARCO.png")
+img_sw = img_sw.resize((360, 280))
 img_sw_tk = ImageTk.PhotoImage(img_sw)
-ksw = canvas.create_image(1370, 500, image=img_sw_tk)
+ksw = canvas.create_image(1120, 480, image=img_sw_tk)
 
 #BOTON ON
-img_boton = Image.open("./SWITCH_ENCENDIDO.png")
-img_boton = img_boton.resize((135, 155))
+img_boton = Image.open("VPN Interfaz - Trafico de datos/SWITCH_ENCENDIDO.png")
+img_boton = img_boton.resize((125, 140))
 img_boton_tk = ImageTk.PhotoImage(img_boton)
 boton = tk.Button(root, borderwidth=0, bg='black', image=img_boton_tk, command=boton1)
-boton.place(x=1209, y=417)
+boton.place(x=973, y=405)
 
 #IMAGEN LED ON HONDURAS
 img_ledontk = None
 kledon = None
 def create_imgledonH():
     global img_ledontk, kledon
-    img_ledon = Image.open("./VPN_ENCENDIDO_LED.png")
+    img_ledon = Image.open("VPN Interfaz - Trafico de datos/VPN_ENCENDIDO_LED.png")
     img_ledon = img_ledon.resize((31, 34))
     img_ledontk = ImageTk.PhotoImage(img_ledon)
-    kledon = canvas.create_image(260, 530, image=img_ledontk)
+    kledon = canvas.create_image(210, 350, image=img_ledontk)
 
 def delete_imgledonH():
     global kledon
@@ -257,10 +285,10 @@ img_ledofftk = None
 kledoff = None
 def create_imgledoffH():
     global img_ledofftk, kledoff
-    img_ledoff = Image.open("./VPN_APAGADO_LED.png")
+    img_ledoff = Image.open("VPN Interfaz - Trafico de datos/VPN_APAGADO_LED.png")
     img_ledoff = img_ledoff.resize((31, 34))
     img_ledofftk = ImageTk.PhotoImage(img_ledoff)
-    kledoff = canvas.create_image(260, 530, image=img_ledofftk)
+    kledoff = canvas.create_image(210, 350, image=img_ledofftk)
 
 def delete_imgledoffH():
     global kledoff
@@ -273,10 +301,10 @@ img_ledonAtk = None
 kledonA = None
 def create_imgledonA():
     global img_ledonAtk, kledonA
-    img_ledonA = Image.open("./VPN_ENCENDIDO_LED.png")
+    img_ledonA = Image.open("VPN Interfaz - Trafico de datos/VPN_ENCENDIDO_LED.png")
     img_ledonA = img_ledonA.resize((31, 34))
     img_ledonAtk = ImageTk.PhotoImage(img_ledonA)
-    kledonA = canvas.create_image(590, 360, image=img_ledonAtk)
+    kledonA = canvas.create_image(480, 240, image=img_ledonAtk)
 
 def delete_imgledonA():
     global kledonA
@@ -289,10 +317,10 @@ img_ledoffAtk = None
 kledoffA = None
 def create_imgledoffA():
     global img_ledoffAtk, kledoffA
-    img_ledoffA = Image.open("./VPN_APAGADO_LED.png")
+    img_ledoffA = Image.open("VPN Interfaz - Trafico de datos/VPN_APAGADO_LED.png")
     img_ledoffA = img_ledoffA.resize((31, 34))
     img_ledoffAtk = ImageTk.PhotoImage(img_ledoffA)
-    kledoffA = canvas.create_image(590, 360, image=img_ledoffAtk)
+    kledoffA = canvas.create_image(480, 240, image=img_ledoffAtk)
 
 def delete_imgledoffA():
     global kledoffA
